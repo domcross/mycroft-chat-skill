@@ -3,23 +3,11 @@
     "skillMetadata": {
         "sections": [
             {
-                "name": "Options << Name of section",
-                "fields": [
-                    {
-                        "name": "internal_python_variable_name",
-                        "type": "text",
-                        "label": "Setting Friendly Display Name",
-                        "value": "",
-                        "placeholder": "demo prompt in the input box"
-                    }
-                ]
-            },
-            {
-                "name": "Login << Name of another section",
+                "name": "Login data",
                 "fields": [
                     {
                         "type": "label",
-                        "label": "Just a little bit of extra info for the user to understand following settings"
+                        "label": "In case you don't have a access token yet please contact @kathy-mycroft or goto ~tell-kathy ;)"
                     },
                     {
                         "name": "username",
@@ -28,9 +16,9 @@
                         "value": ""
                     },
                     {
-                        "name": "password",
+                        "name": "token",
                         "type": "password",
-                        "label": "Password",
+                        "label": "Personal access token",
                         "value": ""
                     }
                 ]
