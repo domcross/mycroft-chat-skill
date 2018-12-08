@@ -46,16 +46,15 @@ class MattermostForMycroft(MycroftSkill):
                 unreadmsg += unread['msg_count']
             if(unread['mention_count']):
                 mentions += unread['mention_count']
-            LOG.debug("channel {} has {} unread messages and {}  mentions".format(
+            LOG.debug("channel {}: {} unread messages, {} mentions".format(
                 chan['display_name'], unread['msg_count'],
                 unread['mention_count']))
         response = ""
         if unreadmsg:
-            response += self.dialog_renderer.render("unread.messages", data={
-                "unreadmsg": unreadmsg}) + " "
+            response += self.dialog_renderer.render("unread.messages", {'unreadmsg': unreadmsg})
+            response += " "
         if mentions:
-            response += self.dialog_renderer.render("mentioned", data={
-                "mentions": mentions})
+            response += self.dialog_renderer.render("mentioned", {"mentions": mentions})
         if response:
             self.speak(response)
         else:
@@ -64,3 +63,8 @@ class MattermostForMycroft(MycroftSkill):
 
 def create_skill():
     return MattermostForMycroft()
+
+
+def shutdown(self):
+        self.mm.logout()
+        super(MattermostForMycroft, self).shutdown()

@@ -12,5 +12,4 @@ With this skill you can monitor mattermost for mycroft and find out if you have 
 
 ## Credits
 domcross (@dominik)
-
-
+Skill was [suggested](https://community.mycroft.ai/t/mattermost-for-mycroft/5293) by andlo (@andlo)
