@@ -20,6 +20,12 @@
                         "type": "password",
                         "label": "Personal access token",
                         "value": ""
+                    },
+                    {
+                        "name": "ttl",
+                        "type": "number",
+                        "label": "Update every x minutes",
+                        "value": "10"
                     }
                 ]
             }

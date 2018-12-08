@@ -5,9 +5,9 @@ Client for chat.mycroft.ai a.k.a. mattermost for mycroft
 With this skill you can monitor mattermost for mycroft and find out if you have been mentioned or if there are unread messages.
 
 ## Examples
- - "Start monitoring mattermost"
- - "Has my name been mentioned on mattermost"
  - "Do i have unread messages on mattermost"
+ - "List all channels with unread messages"
+ - "Read all unread mattermost messages"
 
 
 ## Credits
