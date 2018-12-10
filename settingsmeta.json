@@ -20,6 +20,23 @@
                         "type": "password",
                         "label": "Personal access token",
                         "value": ""
+                    },
+                    {
+                        "type": "label",
+                        "label": "You have to enable Monitoring first by saying 'Hey Mycroft, enable Mattermost monitoring'"
+                    },
+
+                    {
+                        "name": "ttl",
+                        "type": "number",
+                        "label": "Check for update every x minutes",
+                        "value": "10"
+                    },
+                    {
+                        "name": "notify_on_updates",
+                        "type": "checkbox",
+                        "label": "Notify on updates",
+                        "value": "True"
                     }
                 ]
             }
