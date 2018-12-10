@@ -1,1 +1,1 @@
-At {create_at} user {user_name} wrote: {message}
+{create_at} user {user_name} wrote: {message}
