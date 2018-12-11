@@ -44,9 +44,10 @@ class MattermostForMycroft(MycroftSkill):
                 self.speak_dialog("mattermost.error", {'exception': e})
             if self.mm:
                 # info on all subscribed public channels as returned by MM
+                # TODO tidy this up as channels is mostly obsolete
                 self.channels = None
                 self.channels_ts = 0
-                # basic info of unread channels:
+                # basic info of channels (not only unread as name suggest)
                 # channel_id, display_name, (unread) msg_count, mentions
                 self.unread = None
                 self.unread_ts = 0
@@ -93,7 +94,8 @@ class MattermostForMycroft(MycroftSkill):
         if not best_unr:
             self.speak_dialog('channel.unknown', data={'channel': chan})
         elif best_unr['msg_count'] == 0:
-            self.speak_dialog('no.unread.channel.messages', data={'channel': chan})
+            self.speak_dialog('no.unread.channel.messages', data={'channel':
+                                                                  chan})
         else:
             self._read_unread_channel(best_unr)
         self.state = "idle"
@@ -228,7 +230,6 @@ class MattermostForMycroft(MycroftSkill):
                 msg_time = nice_time(datetime.fromtimestamp(
                     post['create_at'] / 1000), self.lang)
                 create_at += msg_time
-                # datetime.fromtimestamp(post['create_at'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
                 msg = self.dialog_renderer.render(
                     "message", {
                         'user_name': self._get_user_name(post['user_id']),
@@ -238,8 +239,8 @@ class MattermostForMycroft(MycroftSkill):
                 LOG.debug(msg)
                 self.speak(msg, wait=True)
             # mark channel as read
-            #self.mm.channels.view_channel(self.userid, {
-            #    'channel_id': unr['channel_id']})
+            self.mm.channels.view_channel(self.userid, {
+                'channel_id': unr['channel_id']})
             # TODO clarify when to reset prev_unread/prev_mentions
             self.prev_unread = 0
             self.prev_mentions = 0
