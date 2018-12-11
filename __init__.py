@@ -1,6 +1,7 @@
 from mycroft import MycroftSkill, intent_file_handler
 from mycroft.util.format import nice_date, nice_time
 from mycroft.util.log import LOG
+from fuzzywuzzy import fuzz
 from mattermostdriver import Driver
 import mattermostdriver.exceptions as mme
 from datetime import datetime
@@ -42,10 +43,13 @@ class MattermostForMycroft(MycroftSkill):
                 self.mm = None
                 self.speak_dialog("mattermost.error", {'exception': e})
             if self.mm:
-                self.channels_ts = 0
+                # info on all subscribed public channels as returned by MM
                 self.channels = None
-                self.unread_ts = 0
+                self.channels_ts = 0
+                # basic info of unread channels:
+                # channel_id, display_name, (unread) msg_count, mentions
                 self.unread = None
+                self.unread_ts = 0
                 self.usercache = {}
                 self.prev_unread = 0
                 self.prev_mentions = 0
@@ -61,6 +65,38 @@ class MattermostForMycroft(MycroftSkill):
     # @intent_file_handler('mycroft.for.mattermost.intent')
     # def handle_mycroft_for_mattermost(self, message):
     #     self.speak_dialog('mycroft.for.mattermost')
+
+    @intent_file_handler('read.unread.channel.intent')
+    def read_channel_messages(self, message):
+        if not self.mm:
+            self.speak_dialog("skill.not.initialized")
+            return
+        elif self.state != "idle":
+            return
+        else:
+            self.state = "speaking"
+        chan = message.data.get('channel')
+        LOG.debug("data {}".format(message.data))
+        if not chan:
+            self.speak_dialog('channel.unknown', data={'channel': ''})
+            self.state = "idle"
+            return
+        best_unr = {}
+        best_score = 66
+        for unr in self._get_unread():
+            score = fuzz.ratio(chan.lower(), unr['display_name'].lower())
+            # LOG.debug("{}->{}".format(unr['display_name'], score))
+            if score > best_score:
+                best_unr = unr
+                best_score = score
+        LOG.debug("{} -> {}".format(best_unr, best_score))
+        if not best_unr:
+            self.speak_dialog('channel.unknown', data={'channel': chan})
+        elif best_unr['msg_count'] == 0:
+            self.speak_dialog('no.unread.channel.messages', data={'channel': chan})
+        else:
+            self._read_unread_channel(best_unr)
+        self.state = "idle"
 
     @intent_file_handler('start.monitoring.intent')
     def start_monitoring_mattermost(self, message):
@@ -92,51 +128,8 @@ class MattermostForMycroft(MycroftSkill):
         for unr in self._get_unread():
             if self.state == "stopped":
                 break
-            msg_count = unr['msg_count']
-            if msg_count:
-                channel_message = self.dialog_renderer.render(
-                        "messages.for.channel", {
-                            'display_name': unr['display_name']
-                        })
-                LOG.debug(channel_message)
-                self.speak(channel_message)
-                pfc = self.mm.posts.get_posts_for_channel(unr['channel_id'])
-                order = pfc['order']
-                # in case returned posts are less than number of unread
-                # avoid 'index out of bounds'
-                msg_count = msg_count if msg_count < len(order) else len(order)
-                prev_date = ""
-                for i in range(0, msg_count):
-                    if self.state == "stopped":
-                        break
-                    post = pfc['posts'][order[msg_count - i - 1]]
-                    create_at = ""
-                    # nice_date does only support en-us yet - bummer!
-                    # MM timestamps are in millisecs, python in secs
-                    msg_date = nice_date(datetime.fromtimestamp(
-                        post['create_at'] / 1000), self.lang,
-                        now=datetime.now())
-                    if prev_date != msg_date:
-                        create_at = msg_date + " "
-                        prev_date = msg_date
-                    msg_time = nice_time(datetime.fromtimestamp(
-                        post['create_at'] / 1000), self.lang)
-                    create_at += msg_time
-                    # datetime.fromtimestamp(post['create_at'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
-                    msg = self.dialog_renderer.render(
-                        "message", {
-                            'user_name': self._get_user_name(post['user_id']),
-                            'create_at': create_at,
-                            'message': post['message']
-                        })
-                    LOG.debug(msg)
-                    self.speak(msg, wait=True)
-                # mark channel as read
-                self.mm.channels.view_channel(self.userid, {
-                    'channel_id': unr['channel_id']})
-                # TODO clarify when to reset prev_unread/prev_mentions
-                self.prev_unread = 0
-                self.prev_mentions = 0
+            # here
+            self._read_unread_channel(unr)
         self.state = "idle"
 
     @intent_file_handler('list.unread.channels.intent')
@@ -186,8 +179,8 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
-        unreadmsg = self._get_unread_msg_count
-        mentions = self._get_mention_count
+        unreadmsg = self._get_unread_msg_count()
+        mentions = self._get_mention_count()
         response = self.__render_unread_dialog(unreadmsg, mentions)
         self.speak(response)
         self.state = "idle"
@@ -199,6 +192,57 @@ class MattermostForMycroft(MycroftSkill):
             self.state = "stopped"
             return True
         return False
+
+    def _read_unread_channel(self, unr):
+        if self.state == "stopped":
+            return
+        msg_count = unr['msg_count']
+        if msg_count:
+            channel_message = self.dialog_renderer.render(
+                    "messages.for.channel", {
+                        'display_name': unr['display_name']
+                    })
+            LOG.debug(channel_message)
+            self.speak(channel_message)
+            pfc = self.mm.posts.get_posts_for_channel(unr['channel_id'])
+            order = pfc['order']
+            # in case returned posts are less than number of unread
+            # avoid 'index out of bounds'
+            msg_count = msg_count if msg_count < len(order) else len(order)
+            prev_date = ""
+            for i in range(0, msg_count):
+                if self.state == "stopped":
+                    break
+                # order starts with newest to oldest,
+                # start to read the oldest of the unread
+                post = pfc['posts'][order[msg_count - i - 1]]
+                create_at = ""
+                # nice_date does only support en-us yet - bummer!
+                # MM timestamps are in millisecs, python in secs
+                msg_date = nice_date(datetime.fromtimestamp(
+                    post['create_at'] / 1000), self.lang,
+                    now=datetime.now())
+                if prev_date != msg_date:
+                    create_at = msg_date + " "
+                    prev_date = msg_date
+                msg_time = nice_time(datetime.fromtimestamp(
+                    post['create_at'] / 1000), self.lang)
+                create_at += msg_time
+                # datetime.fromtimestamp(post['create_at'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
+                msg = self.dialog_renderer.render(
+                    "message", {
+                        'user_name': self._get_user_name(post['user_id']),
+                        'create_at': create_at,
+                        'message': post['message']
+                    })
+                LOG.debug(msg)
+                self.speak(msg, wait=True)
+            # mark channel as read
+            #self.mm.channels.view_channel(self.userid, {
+            #    'channel_id': unr['channel_id']})
+            # TODO clarify when to reset prev_unread/prev_mentions
+            self.prev_unread = 0
+            self.prev_mentions = 0
 
     def _get_unread_msg_count(self):
         unreadmsg = 0
@@ -215,6 +259,7 @@ class MattermostForMycroft(MycroftSkill):
         return mentions
 
     def __render_unread_dialog(self, unreadmsg, mentions):
+        LOG.debug("unread {} mentions {}".format(unreadmsg, mentions))
         response = ""
         if unreadmsg:
             response += self.dialog_renderer.render('unread.messages', {
@@ -229,6 +274,7 @@ class MattermostForMycroft(MycroftSkill):
 
     def _mattermost_monitoring_handler(self):
         LOG.debug("mm monitoring handler")
+        # do not update when last run was less than 30secs before
         if (time.time() - self.channels_ts) > 30:
             self._get_channels()
         if (time.time() - self.unread_ts) > 30:
@@ -257,6 +303,7 @@ class MattermostForMycroft(MycroftSkill):
                 self.userid, self.teamid)
             self.channels_ts = time.time()
             LOG.debug("...done")
+            # LOG.debug(self.channels)
         return self.channels
 
     def _get_unread(self):
@@ -277,13 +324,14 @@ class MattermostForMycroft(MycroftSkill):
             self.unread = unread
             self.unread_ts = time.time()
             LOG.debug("...done")
+            # LOG.debug(self.unread)
         return self.unread
 
     def _get_user_name(self, userid):
         if not (userid in self.usercache):
             user = self.mm.users.get_user(userid)
             self.usercache[userid] = user['username']
-            LOG.debug("usercache add {}->{}".format(userid, user['username']))
+            # LOG.debug("usercache add {}->{}".format(userid, user['username']))
         return self.usercache[userid]
 
 
