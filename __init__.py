@@ -14,20 +14,32 @@ class MattermostForMycroft(MycroftSkill):
 
     def initialize(self):
         self.state = "idle"
+        self.mm = None
+        # login
         self.username = self.settings.get("username", "")
         self.token = self.settings.get("token", "")
+        self.login_id = self.settings.get("login_id", "")
+        self.password = self.settings.get("password", "")
+        # monitoring
         self.ttl = self.settings.get("ttl", 10) * 60
         self.notify_on_updates = self.settings.get("notify_on_updates", False)
         LOG.debug("username: {}".format(self.username))
-        if self.username and self.token:
-            # TODO expose url etc. to make this a universal MM client?
-            self.mm = Driver({
-                'url': 'chat.mycroft.ai',
-                'token': self.token,
-                'scheme': 'https',
-                'port': 443,
-                'verify': True
-            })
+
+        mm_driver_config = {
+                'url': self.settings.get("url", "chat.mycroft.ai"),
+                'scheme': self.settings.get("scheme", "https"),
+                'port': self.settings.get("port", 443),
+                'verify': self.settings.get("verify", True)
+        }
+
+        if self.token:
+            mm_driver_config['token'] = self.token
+        elif self.login_id and self.password:
+            mm_driver_config['login_id'] = self.login_id
+            mm_driver_config['password'] = self.password
+
+        if self.username:
+            self.mm = Driver(mm_driver_config)
             try:
                 self.mm.login()
                 self.userid = \
@@ -44,7 +56,7 @@ class MattermostForMycroft(MycroftSkill):
                 self.speak_dialog("mattermost.error", {'exception': e})
             if self.mm:
                 # info on all subscribed public channels as returned by MM
-                # TODO tidy this up as channels is mostly obsolete
+                # TODO tidy this up as self.channels is mostly obsolete
                 self.channels = None
                 self.channels_ts = 0
                 # basic info of channels (not only unread as name suggest)
@@ -270,7 +282,7 @@ class MattermostForMycroft(MycroftSkill):
             response += self.dialog_renderer.render('mentioned', {
                 'mentions': mentions})
         if not response:
-            self.dialog_renderer.render('no.unread.messages')
+            response = self.dialog_renderer.render('no.unread.messages')
         return response
 
     def _mattermost_monitoring_handler(self):

@@ -6,14 +6,14 @@
                 "name": "Login data",
                 "fields": [
                     {
-                        "type": "label",
-                        "label": "In case you don't have a access token yet please contact @kathy-mycroft or goto ~tell-kathy ;)"
-                    },
-                    {
                         "name": "username",
                         "type": "text",
                         "label": "Username",
                         "value": ""
+                    },
+                    {
+                        "type": "label",
+                        "label": "Either specify access token or use login-id AND password"
                     },
                     {
                         "name": "token",
@@ -22,10 +22,26 @@
                         "value": ""
                     },
                     {
-                        "type": "label",
-                        "label": "You have to enable Monitoring first by saying 'Hey Mycroft, enable Mattermost monitoring'"
+                        "name": "login_id",
+                        "type": "text",
+                        "label": "Login-ID (e.g. your email)",
+                        "value": ""
                     },
-
+                    {
+                        "name": "password",
+                        "type": "password",
+                        "label": "Password",
+                        "value": ""
+                    }
+                ]
+            },
+            {
+                "name": "Monitoring",
+                "fields": [
+                    {
+                        "type": "label",
+                        "label": "You have to enable Monitoring first by saying 'Hey Mycroft, begin monitoring of Mattermost'"
+                    },
                     {
                         "name": "ttl",
                         "type": "number",
@@ -36,6 +52,39 @@
                         "name": "notify_on_updates",
                         "type": "checkbox",
                         "label": "Notify on updates",
+                        "value": "True"
+                    }
+                ]
+            },
+            {
+                "name": "Server configuiration",
+                "fields": [
+                    {
+                        "type": "label",
+                        "label": "Defaults are for chat.mycroft.ai - change anything here and you are on your own..."
+                    },
+                    {
+                        "name": "scheme",
+                        "type": "text",
+                        "label": "Scheme",
+                        "value": "https"
+                    },
+                    {
+                        "name": "url",
+                        "type": "text",
+                        "label": "URL",
+                        "value": "chat.mycroft.ai"
+                    },
+                    {
+                        "name": "port",
+                        "type": "number",
+                        "label": "Port number",
+                        "value": "443"
+                    },
+                    {
+                        "name": "verify",
+                        "type": "checkbox",
+                        "label": "Verify",
                         "value": "True"
                     }
                 ]
