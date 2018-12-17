@@ -15,7 +15,7 @@ class MattermostForMycroft(MycroftSkill):
     def initialize(self):
         self.state = "idle"
         self.mm = None
-        # login
+        # login data
         self.username = self.settings.get("username", "")
         self.token = self.settings.get("token", "")
         self.login_id = self.settings.get("login_id", "")
@@ -56,28 +56,24 @@ class MattermostForMycroft(MycroftSkill):
                 self.speak_dialog("mattermost.error", {'exception': e})
             if self.mm:
                 # info on all subscribed public channels as returned by MM
-                # TODO tidy this up as self.channels is mostly obsolete
-                self.channels = None
-                self.channels_ts = 0
-                # basic info of channels (not only unread as name suggest)
+                self.channel_subscriptions = None
+                self.channel_subs_ts = 0
+                # basic info of channels
                 # channel_id, display_name, (unread) msg_count, mentions
-                self.unread = None
-                self.unread_ts = 0
+                self.channel_info = None
+                self.channel_info_ts = 0
                 self.usercache = {}
                 self.prev_unread = 0
                 self.prev_mentions = 0
                 self.monitoring = False
 
     def on_websettings_changed(self):
+        LOG.debug("websettings changed!")
         if self.mm:
             self.mm.logout()
         if self.monitoring:
             self.cancel_scheduled_event('Mattermost')
         self.initialize()
-
-    # @intent_file_handler('mycroft.for.mattermost.intent')
-    # def handle_mycroft_for_mattermost(self, message):
-    #     self.speak_dialog('mycroft.for.mattermost')
 
     @intent_file_handler('read.unread.channel.intent')
     def read_channel_messages(self, message):
@@ -88,28 +84,31 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
-        chan = message.data.get('channel')
+        channel_name = message.data.get('channel')
         LOG.debug("data {}".format(message.data))
-        if not chan:
+        if not channel_name:
             self.speak_dialog('channel.unknown', data={'channel': ''})
             self.state = "idle"
             return
-        best_unr = {}
-        best_score = 66
-        for unr in self._get_unread():
-            score = fuzz.ratio(chan.lower(), unr['display_name'].lower())
+        # do some fuzzy matching on channel
+        best_chan = {}
+        best_score = 66  # minimum score required
+        for chan in self._get_channel_info():
+            score = fuzz.ratio(channel_name.lower(),
+                               chan['display_name'].lower())
             # LOG.debug("{}->{}".format(unr['display_name'], score))
             if score > best_score:
-                best_unr = unr
+                best_chan = chan
                 best_score = score
-        LOG.debug("{} -> {}".format(best_unr, best_score))
-        if not best_unr:
-            self.speak_dialog('channel.unknown', data={'channel': chan})
-        elif best_unr['msg_count'] == 0:
-            self.speak_dialog('no.unread.channel.messages', data={'channel':
-                                                                  chan})
+        LOG.debug("{} -> {}".format(best_chan, best_score))
+        if not best_chan:
+            self.speak_dialog('channel.unknown',
+                              data={'channel': channel_name})
+        elif best_chan['msg_count'] == 0:
+            self.speak_dialog('no.unread.channel.messages',
+                              data={'channel': channel_name})
         else:
-            self._read_unread_channel(best_unr)
+            self._read_unread_channel(best_chan)
         self.state = "idle"
 
     @intent_file_handler('start.monitoring.intent')
@@ -139,11 +138,10 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
-        for unr in self._get_unread():
+        for chan in self._get_channel_info():
             if self.state == "stopped":
                 break
-            # here
-            self._read_unread_channel(unr)
+            self._read_unread_channel(chan)
         self.state = "idle"
 
     @intent_file_handler('list.unread.channels.intent')
@@ -155,26 +153,26 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
-        for unr in self._get_unread():
+        for ch in self._get_channel_info():
             responses = []
-            if(unr['msg_count'] and unr['mention_count']):
+            if(ch['msg_count'] and ch['mention_count']):
                 responses.append(self.dialog_renderer.render(
                     "channel.unread.and.mentioned", {
-                        'msg_count': unr['msg_count'],  # TODO use nice_number
-                        'display_name': unr['display_name'],
-                        'mention_count': unr['mention_count']
+                        'msg_count': ch['msg_count'],  # TODO use nice_number
+                        'display_name': ch['display_name'],
+                        'mention_count': ch['mention_count']
                     }))
-            elif unr['msg_count']:
+            elif ch['msg_count']:
                 responses.append(self.dialog_renderer.render(
                     "channel.unread", {
-                        'msg_count': unr['msg_count'],  # TODO use nice_number
-                        'display_name': unr['display_name']
+                        'msg_count': ch['msg_count'],  # TODO use nice_number
+                        'display_name': ch['display_name']
                     }))
-            elif unr['mention_count']:
+            elif ch['mention_count']:
                 responses.append(self.dialog_renderer.render(
                     "channel.mentioned", {
-                        'mention_count': unr['mention_count'],
-                        'display_name': unr['display_name']
+                        'mention_count': ch['mention_count'],
+                        'display_name': ch['display_name']
                     }))
 
             if responses:
@@ -196,7 +194,12 @@ class MattermostForMycroft(MycroftSkill):
         unreadmsg = self._get_unread_msg_count()
         mentions = self._get_mention_count()
         response = self.__render_unread_dialog(unreadmsg, mentions)
-        self.speak(response)
+        self.enclosure.deactivate_mouth_events()
+        self.enclosure.mouth_text('unread: {} mentions: {}'.format(unreadmsg,
+                                                                   mentions))
+        self.speak(response, wait=True)
+        self.enclosure.activate_mouth_events()
+        self.enclosure.mouth_reset()
         self.state = "idle"
 
     def stop(self):
@@ -207,18 +210,18 @@ class MattermostForMycroft(MycroftSkill):
             return True
         return False
 
-    def _read_unread_channel(self, unr):
+    def _read_unread_channel(self, chan):
         if self.state == "stopped":
             return
-        msg_count = unr['msg_count']
+        msg_count = chan['msg_count']
         if msg_count:
             channel_message = self.dialog_renderer.render(
                     "messages.for.channel", {
-                        'display_name': unr['display_name']
+                        'display_name': chan['display_name']
                     })
             LOG.debug(channel_message)
             self.speak(channel_message)
-            pfc = self.mm.posts.get_posts_for_channel(unr['channel_id'])
+            pfc = self.mm.posts.get_posts_for_channel(chan['channel_id'])
             order = pfc['order']
             # in case returned posts are less than number of unread
             # avoid 'index out of bounds'
@@ -252,23 +255,23 @@ class MattermostForMycroft(MycroftSkill):
                 self.speak(msg, wait=True)
             # mark channel as read
             self.mm.channels.view_channel(self.userid, {
-                'channel_id': unr['channel_id']})
+                'channel_id': chan['channel_id']})
             # TODO clarify when to reset prev_unread/prev_mentions
             self.prev_unread = 0
             self.prev_mentions = 0
 
     def _get_unread_msg_count(self):
         unreadmsg = 0
-        for unr in self._get_unread():
-            if(unr['msg_count']):
-                unreadmsg += unr['msg_count']
+        for chan in self._get_channel_info():
+            if(chan['msg_count']):
+                unreadmsg += chan['msg_count']
         return unreadmsg
 
     def _get_mention_count(self):
         mentions = 0
-        for unr in self._get_unread():
-            if(unr['mention_count']):
-                mentions += unr['mention_count']
+        for chan in self._get_channel_info():
+            if(chan['mention_count']):
+                mentions += chan['mention_count']
         return mentions
 
     def __render_unread_dialog(self, unreadmsg, mentions):
@@ -288,57 +291,76 @@ class MattermostForMycroft(MycroftSkill):
     def _mattermost_monitoring_handler(self):
         LOG.debug("mm monitoring handler")
         # do not update when last run was less than 30secs before
-        if (time.time() - self.channels_ts) > 30:
-            self._get_channels()
-        if (time.time() - self.unread_ts) > 30:
-            self._get_unread()
-        if self.notify_on_updates:
-            LOG.debug("check for notifications")
-            unreadmsg = self._get_unread_msg_count()
-            mentions = self._get_mention_count()
-            # TODO clarify when to reset prev_unread/prev_mentions
-            if unreadmsg > self.prev_unread:
-                self.prev_unread = unreadmsg
-            else:
-                unreadmsg = 0
-            if mentions > self.prev_mentions:
-                self.prev_mentions = mentions
-            else:
-                mentions = 0
-            LOG.debug("unread: {} mentions: {}".format(unreadmsg, mentions))
-            if unreadmsg or mentions:
+        if (time.time() - self.channel_subs_ts) > 30:
+            self._get_channel_subscriptions()
+        if (time.time() - self.channel_info_ts) > 30:
+            self._get_channel_info()
+
+        LOG.debug("check for notifications")
+        unreadmsg = self._get_unread_msg_count()
+        mentions = self._get_mention_count()
+        # TODO clarify when to reset prev_unread/prev_mentions
+        if unreadmsg != self.prev_unread:
+            self.prev_unread = unreadmsg
+        else:
+            unreadmsg = 0
+        if mentions != self.prev_mentions:
+            self.prev_mentions = mentions
+        else:
+            mentions = 0
+
+        LOG.debug("unread: {} mentions: {}".format(unreadmsg, mentions))
+        if unreadmsg or mentions:
+            # display unread and mentions on Mark-1 display
+            self.enclosure.deactivate_mouth_events()
+            display_text = self.dialog_renderer.render('display.message.count',
+                                                       {'unread': unreadmsg,
+                                                        'mentions': mentions})
+            self.enclosure.mouth_text(display_text)
+            # clear display after 30 seconds
+            self.schedule_repeating_event(self._mattermost_display_handler,
+                                          None, 30, 'mmdisplay')
+
+            if self.notify_on_updates:
                 self.speak(self.__render_unread_dialog(unreadmsg, mentions))
 
-    def _get_channels(self):
-        if (time.time() - self.channels_ts) > self.ttl:
-            LOG.debug("get channels...")
-            self.channels = self.mm.channels.get_channels_for_user(
-                self.userid, self.teamid)
-            self.channels_ts = time.time()
-            LOG.debug("...done")
-            # LOG.debug(self.channels)
-        return self.channels
+    def _mattermost_display_handler(self):
+        # clear display and reset display handler
+        self.enclosure.activate_mouth_events()
+        self.enclosure.mouth_reset()
+        self.cancel_scheduled_event('mmdisplay')
 
-    def _get_unread(self):
-        if (time.time() - self.unread_ts) > self.ttl:
-            LOG.debug("get unread...")
-            unread = []
-            for chan in self._get_channels():
+    def _get_channel_subscriptions(self):
+        # update channel subscriptions only every second ttl interval
+        if (time.time() - self.channel_subs_ts) > (self.ttl * 2):
+            LOG.debug("get channel subscriptions...")
+            self.channel_subscriptions = self.mm.channels.get_channels_for_user(
+                self.userid, self.teamid)
+            self.channel_subs_ts = time.time()
+            LOG.debug("...done")
+            # LOG.debug(self.channel_subscriptions)
+        return self.channel_subscriptions
+
+    def _get_channel_info(self):
+        if (time.time() - self.channel_info_ts) > self.ttl:
+            LOG.debug("get channel info...")
+            info = []
+            for chan in self._get_channel_subscriptions():
                 if chan['team_id'] != self.teamid:
                     continue
                 unr = self.mm.channels.get_unread_messages(
                         self.userid, chan['id'])
-                unread.append({
+                info.append({
                     'display_name': chan['display_name'],
                     'msg_count': unr['msg_count'],
                     'mention_count': unr['mention_count'],
                     'channel_id': chan['id']
                 })
-            self.unread = unread
-            self.unread_ts = time.time()
+            self.channel_info = info
+            self.channel_info_ts = time.time()
             LOG.debug("...done")
-            # LOG.debug(self.unread)
-        return self.unread
+            # LOG.debug(self.channel_info)
+        return self.channel_info
 
     def _get_user_name(self, userid):
         if not (userid in self.usercache):
