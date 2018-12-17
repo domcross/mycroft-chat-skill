@@ -1,4 +1,4 @@
-# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/advanced-options/raw-svg/solid/comments.svg' card_color='#4093DB' width='50' height='50' style='vertical-align:bottom'/> Mattermost For Mycroft
+# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/svgs/solid/comments.svg' card_color='#4093DB' width='50' height='50' style='vertical-align:bottom'/> Mattermost For Mycroft
 Monitor Mattermost for mycroft and find out if you have been mentioned or if there are unread messages. Messages can be read by Mycroft as well.
 
 ## About
