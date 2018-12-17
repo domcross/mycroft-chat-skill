@@ -312,14 +312,16 @@ class MattermostForMycroft(MycroftSkill):
         LOG.debug("unread: {} mentions: {}".format(unreadmsg, mentions))
         if unreadmsg or mentions:
             # display unread and mentions on Mark-1 display
-            self.enclosure.deactivate_mouth_events()
-            display_text = self.dialog_renderer.render('display.message.count',
-                                                       {'unread': unreadmsg,
-                                                        'mentions': mentions})
-            self.enclosure.mouth_text(display_text)
-            # clear display after 30 seconds
-            self.schedule_repeating_event(self._mattermost_display_handler,
-                                          None, 30, 'mmdisplay')
+            if self.config_core.get("enclosure").get("platform", "") == \
+               'mycroft_mark_1':
+                self.enclosure.deactivate_mouth_events()
+                display_text = self.dialog_renderer.render(
+                    'display.message.count', {'unread': unreadmsg,
+                                              'mentions': mentions})
+                self.enclosure.mouth_text(display_text)
+                # clear display after 30 seconds
+                self.schedule_event(self._mattermost_display_handler, 30, None,
+                                    'mmdisplay')
 
             if self.notify_on_updates:
                 self.speak(self.__render_unread_dialog(unreadmsg, mentions))
