@@ -67,6 +67,9 @@ class MattermostForMycroft(MycroftSkill):
                 self.prev_mentions = 0
                 self.monitoring = False
 
+        # Check and then monitor for credential changes
+        self.settings.set_changed_callback(self.on_websettings_changed)
+
     def on_websettings_changed(self):
         LOG.debug("websettings changed!")
         if self.mm:
@@ -311,17 +314,20 @@ class MattermostForMycroft(MycroftSkill):
 
         LOG.debug("unread: {} mentions: {}".format(unreadmsg, mentions))
         if unreadmsg or mentions:
-            # display unread and mentions on Mark-1 display
+            # display unread and mentions on Mark-1/2 display
+            display_text = self.dialog_renderer.render(
+                    'display.message.count', {'unread': unreadmsg,
+                                              'mentions': mentions})
             if self.config_core.get("enclosure").get("platform", "") == \
                'mycroft_mark_1':
                 self.enclosure.deactivate_mouth_events()
-                display_text = self.dialog_renderer.render(
-                    'display.message.count', {'unread': unreadmsg,
-                                              'mentions': mentions})
                 self.enclosure.mouth_text(display_text)
                 # clear display after 30 seconds
                 self.schedule_event(self._mattermost_display_handler, 30, None,
                                     'mmdisplay')
+            elif self.config_core.get("enclosure").get("platform", "") == \
+                 'mycroft_mark_2':
+                self.gui.show_text(display_text, "MATTERMOST")
 
             if self.notify_on_updates:
                 self.speak(self.__render_unread_dialog(unreadmsg, mentions))
