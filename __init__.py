@@ -65,7 +65,10 @@ class MattermostForMycroft(MycroftSkill):
                 self.usercache = {}
                 self.prev_unread = 0
                 self.prev_mentions = 0
-                self.monitoring = False
+                if self.settings.get('monitoring') is True:
+                    self.monitoring = True
+                else:
+                    self.monitoring = False
 
         # Check and then monitor for credential changes
         self.settings.set_changed_callback(self.on_websettings_changed)
@@ -114,6 +117,8 @@ class MattermostForMycroft(MycroftSkill):
             self._read_unread_channel(best_chan)
         self.state = "idle"
 
+
+
     @intent_file_handler('start.monitoring.intent')
     def start_monitoring_mattermost(self, message):
         if not self.mm:
@@ -123,6 +128,7 @@ class MattermostForMycroft(MycroftSkill):
         self.schedule_repeating_event(self._mattermost_monitoring_handler,
                                       None, self.ttl, 'Mattermost')
         self.monitoring = True
+        self.settings['monitoring'] = True
         self.speak_dialog('monitoring.active')
 
     @intent_file_handler('end.monitoring.intent')
@@ -130,6 +136,7 @@ class MattermostForMycroft(MycroftSkill):
         LOG.debug("end monitoring")
         self.cancel_scheduled_event('Mattermost')
         self.monitoring = False
+        self.settings['monitoring'] = False
         self.speak_dialog('monitoring.inactive')
 
     @intent_file_handler('read.unread.messages.intent')
