@@ -67,6 +67,8 @@ class MattermostForMycroft(MycroftSkill):
                 self.prev_mentions = 0
                 if self.settings.get('monitoring') is True:
                     self.monitoring = True
+                    self.schedule_repeating_event(self._mattermost_monitoring_handler,
+                                      None, self.ttl, 'Mattermost')
                 else:
                     self.monitoring = False
 
