@@ -19,7 +19,7 @@ You can also specify the server configuration. Default settings are for chat.myc
 
 ## Credits
 Dominik (@domcross)
-Skill [suggested](https://community.mycroft.ai/t/mattermost-for-mycroft/5293) by Andreas (@andlo)
+Skill [suggested](https://community.mycroft.ai/t/mattermost-for-mycroft/5293) by Andreas Lorenson (@andlo)
 
 ## Category
 Daily
