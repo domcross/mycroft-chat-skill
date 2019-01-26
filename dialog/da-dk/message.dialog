@@ -1,0 +1,2 @@
+# {create_at} user {user_name} wrote: {message}
+{create_at} bruger {user_name} skrev: {message}
