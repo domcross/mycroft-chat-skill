@@ -80,7 +80,7 @@ class MattermostForMycroft(MycroftSkill):
                 self.usercache = {}
                 self.prev_unread = 0
                 self.prev_mentions = 0
-                if self.settings.get('monitoring') is True:
+                if self.settings.get('monitoring', False):
                     self.monitoring = True
                     self.schedule_repeating_event(self._mattermost_monitoring_handler,
                                       None, self.ttl, 'Mattermost')
@@ -146,6 +146,7 @@ class MattermostForMycroft(MycroftSkill):
                                       None, self.ttl, 'Mattermost')
         self.monitoring = True
         self.settings['monitoring'] = True
+        self.settings.store(force=True)
         self.speak_dialog('monitoring.active')
 
     @intent_file_handler('end.monitoring.intent')
@@ -154,6 +155,7 @@ class MattermostForMycroft(MycroftSkill):
         self.cancel_scheduled_event('Mattermost')
         self.monitoring = False
         self.settings['monitoring'] = False
+        self.settings.store(force=True)
         self.speak_dialog('monitoring.inactive')
 
     @intent_file_handler('read.unread.messages.intent')
@@ -180,6 +182,8 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
+
+        count = 0
         for ch in self._get_channel_info():
             responses = []
             if(ch['msg_count'] and ch['mention_count']):
@@ -203,10 +207,15 @@ class MattermostForMycroft(MycroftSkill):
                     }))
 
             if responses:
+                count += 1
                 for res in responses:
                     if self.state == "stopped":
                         break
                     self.speak(res, wait=True)
+
+        if count == 0:
+            # no unread/mentions
+            self.speak_dialog('no.unread.messages')
         self.state = "idle"
 
     @intent_file_handler('unread.messages.intent')
@@ -280,6 +289,7 @@ class MattermostForMycroft(MycroftSkill):
                     })
                 LOG.debug(msg)
                 self.speak(msg, wait=True)
+                time.sleep(.3)
             # mark channel as read
             self.mm.channels.view_channel(self.userid, {
                 'channel_id': chan['channel_id']})

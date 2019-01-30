@@ -40,7 +40,13 @@
                 "fields": [
                     {
                         "type": "label",
-                        "label": "You have to enable Monitoring first by saying 'Hey Mycroft, begin monitoring of Mattermost'"
+                        "label": "You have to enable Monitoring here or by saying 'Hey Mycroft, begin monitoring of Mattermost'"
+                    },
+                    {
+                        "name": "monitoring",
+                        "type": "checkbox",
+                        "label": "Enable monitoring",
+                        "value": "False"
                     },
                     {
                         "name": "ttl",
@@ -57,7 +63,7 @@
                 ]
             },
             {
-                "name": "Server configuiration",
+                "name": "Server configuration",
                 "fields": [
                     {
                         "type": "label",
@@ -84,7 +90,7 @@
                     {
                         "name": "verify",
                         "type": "checkbox",
-                        "label": "Verify",
+                        "label": "Verify SSL certificate",
                         "value": "True"
                     }
                 ]
