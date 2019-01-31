@@ -12,13 +12,14 @@ You can also specify the server configuration. Default settings are for chat.myc
 ## Examples
 * "Are there unread messages on Mattermost"
 * "Name Mattermost channels with unread messages"
-* "Read all unread messages"
+* "Read all unread mattermost messages"
 * "Read messages for the channel {name}"
 * "Begin monitoring of mattermost"
-* "End monitoring of mattermost"
+* "Stop monitoring of mattermost"
 
 ## Credits
 Dominik (@domcross)
+
 Skill [suggested](https://community.mycroft.ai/t/mattermost-for-mycroft/5293) by Andreas Lorenson (@andlo)
 
 ## Category
