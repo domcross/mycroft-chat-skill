@@ -1,2 +1,3 @@
 # (name) mattermost channels with unread messages
-(nævn|sig|oplys|forlæl) (de) vigtigste kanaler (med ulæste meddelelser) (på Mattermost)
+(nævn|sig|oplys|forlæl) (de) vigtigste kanaler (med ulæste meddelelser) på {service}
+(nævn|sig|oplys|forlæl) (de) vigtigste kanaler (med ulæste meddelelser)

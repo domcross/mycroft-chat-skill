@@ -1,9 +1,9 @@
 # end monitoring of mattermost
-Afslut overvågning af Mattermost
-Afslut Mattermost overvågning
+Afslut overvågning af {service}
+Afslut {service} overvågning
 # deactivate mattermost monitoring
-deaktivere overvågning af Mattermost
-slut overvågning af Mattermost
-deaktivere Mattermost overvågning
-slut Mattermost overvågning
+deaktivere overvågning af {service}
+slut overvågning af {service}
+deaktivere {service} overvågning
+slut {service} overvågning
 
