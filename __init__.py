@@ -22,10 +22,8 @@ import mattermostdriver.exceptions as mme
 from datetime import datetime
 import time
 
-SERVICE_NAME = "mattermost"
 
-
-class MattermostForMycroft(MycroftSkill):
+class MycroftChat(MycroftSkill):
 
     def __init__(self):
         MycroftSkill.__init__(self)
@@ -52,6 +50,11 @@ class MattermostForMycroft(MycroftSkill):
                 'port': self.settings.get("port", 443),
                 'verify': self.settings.get("verify", True)
         }
+
+        if self.settings.get("url", "chat.mycroft.ai") == "chat.mycroft.ai":
+            self.service_name = "Mycroft Chat"
+        else:
+            self.service_name = "Mattermost"
 
         if self.token:
             mm_driver_config['token'] = self.token
@@ -147,31 +150,23 @@ class MattermostForMycroft(MycroftSkill):
         if not self.mm:
             self.speak_dialog("skill.not.initialized")
             return
-        service_name = message.data.get('service')
-        # LOG.debug("service_name {}".format(service_name))
-        if not service_name:
-            service_name = SERVICE_NAME
         LOG.debug("start monitoring with ttl {} secs".format(self.ttl))
         self.schedule_repeating_event(self._mattermost_monitoring_handler,
                                       None, self.ttl, 'Mattermost')
         self.monitoring = True
         self.settings['monitoring'] = True
         self.settings.store(force=True)
-        self.speak_dialog('monitoring.active', {'service': service_name})
+        self.speak_dialog('monitoring.active', {'service': self.service_name})
 
     @intent_file_handler('end.monitoring.intent')
     def end_monitoring_mattermost(self, message):
         LOG.debug("end monitoring")
-        service_name = message.data.get('service')
-        LOG.debug("service_name {}".format(service_name))
-        if not service_name:
-            service_name = SERVICE_NAME
         self.cancel_scheduled_event('Mattermost')
         self.monitoring = False
         self.settings['monitoring'] = False
         self.settings.store(force=True)
         self.speak_dialog('monitoring.inactive', data={'service':
-                                                       service_name})
+                                                       self.service_name})
 
     @intent_file_handler('read.unread.messages.intent')
     def read_unread_messages(self, message):
@@ -230,11 +225,8 @@ class MattermostForMycroft(MycroftSkill):
 
         if count == 0:
             # no unread/mentions
-            service_name = message.data.get('service')
-            if not service_name:
-                service_name = SERVICE_NAME
             self.speak_dialog('no.unread.messages', data={'service':
-                                                          service_name})
+                                                          self.service_name})
         self.state = "idle"
 
     @intent_file_handler('unread.messages.intent')
@@ -246,14 +238,10 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
-        service_name = message.data.get('service')
-        LOG.debug("service_name {}".format(service_name))
-        if not service_name:
-                service_name = SERVICE_NAME
         unreadmsg = self._get_unread_msg_count()
         mentions = self._get_mention_count()
         response = self.__render_unread_dialog(unreadmsg, mentions,
-                                               service_name)
+                                               self.service_name)
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text('unread: {} mentions: {}'.format(unreadmsg,
                                                                    mentions))
@@ -336,7 +324,9 @@ class MattermostForMycroft(MycroftSkill):
         return mentions
 
     def __render_unread_dialog(self, unreadmsg, mentions,
-                               service=SERVICE_NAME):
+                               service=None):
+        if not service:
+            service = self.service_name
         LOG.debug("unread {} mentions {}".format(unreadmsg, mentions))
         response = ""
         if unreadmsg:
@@ -387,7 +377,7 @@ class MattermostForMycroft(MycroftSkill):
                                     'mmdisplay')
             elif self.config_core.get("enclosure").get("platform", "") == \
                 'mycroft_mark_2':
-                self.gui.show_text(display_text, "MATTERMOST")
+                self.gui.show_text(display_text, self.service_name)
 
             if self.notify_on_updates:
                 self.speak(self.__render_unread_dialog(unreadmsg, mentions))
@@ -440,7 +430,7 @@ class MattermostForMycroft(MycroftSkill):
 
 
 def create_skill():
-    return MattermostForMycroft()
+    return MycroftChat()
 
 
 def shutdown(self):
@@ -448,4 +438,4 @@ def shutdown(self):
             self.mm.logout()
         if self.monitoring:
             self.cancel_scheduled_event('Mattermost')
-        super(MattermostForMycroft, self).shutdown()
+        super(MycroftChat, self).shutdown()
