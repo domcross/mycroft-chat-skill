@@ -22,16 +22,16 @@ when the option is activated Mycroft willl speak out loud the number of unread m
 * "Begin monitoring of Mycroft Chat"
 * "Stop monitoring of Mycroft Chat"
 
-## Advanced usage - server configuration
+## Advanced - Server configuration
 
 The [Mycroft Chat](chat.mycroft.ai) is based on [Mattermost](https://www.mattermost.org/).
-Basically you can connect this skill to any chat server that runs on Mattermost.
+You can connect with this skill to any chat server that runs on Mattermost.
 
 For this you must change in the server configuration in your [skill settings](home.mycroft.ai).
 Default settings are for chat.mycroft.ai - so you should probably write these down in case you want to switch back to Mycroft Chat.
 NOTE: change anything here and you are on your own! ;-)
 
-Hint: for all intents you can use either "Mattermost" instead of "Mycroft Chat", e.g. "Are there unread messages on Mattermost"
+Hint: for all intents you can use "Mattermost" instead of "Mycroft Chat", e.g. "Are there unread messages on Mattermost"
 
 ## Credits
 Dominik (@domcross)

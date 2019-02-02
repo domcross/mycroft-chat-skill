@@ -1,5 +1,5 @@
 {
-    "name": "Mattermost for mycroft",
+    "name": "Mycroft Chat / Mattermost",
     "skillMetadata": {
         "sections": [
             {
@@ -40,7 +40,7 @@
                 "fields": [
                     {
                         "type": "label",
-                        "label": "You have to enable Monitoring here or by saying 'Hey Mycroft, begin monitoring of Mattermost'"
+                        "label": "You have to enable Monitoring here or by saying 'Hey Mycroft, begin monitoring of Mycroft Chat'"
                     },
                     {
                         "name": "monitoring",
@@ -63,7 +63,7 @@
                 ]
             },
             {
-                "name": "Server configuration",
+                "name": "Advanced - Server configuration",
                 "fields": [
                     {
                         "type": "label",
