@@ -68,7 +68,7 @@ class MycroftChat(MycroftSkill):
                 self.mm.login()
                 self.userid = \
                     self.mm.users.get_user_by_username(self.username)['id']
-                # TODO check if user is member of several teams?
+                # TODO check if user is member of several teams
                 self.teamid = self.mm.teams.get_team_members_for_user(
                     self.userid)[0]['team_id']
                 LOG.debug("userid: {} teamid: {}".format(self.userid,
