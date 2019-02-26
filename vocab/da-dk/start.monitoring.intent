@@ -1,4 +1,4 @@
 # begin monitoring of mattermost
-(aktiver|start|begynd) (med) (at) (overvåge|overvågning) (af) Mattermost
+(aktiver|start|begynd) (med) (at) (overvåge|overvågning) (af) Mycroft chat
 # activate mattermost monitoring
-(aktiver|start|begynd) Mattermost overvågning
+(aktiver|start|begynd) Mycroft chat overvågning
