@@ -1,10 +1,10 @@
 # <img src='icon.png' card_color='#4093DB' width='50' height='50' style='vertical-align:bottom'/> Mycroft Chat
-The [Mycroft Chat](chat.mycroft.ai) allows you to interact with other community users.
+The [Mycroft Chat](https://chat.mycroft.ai) allows you to interact with other community users.
 This skill allows you to monitor Mycroft Chat and find out if you have been mentioned or if there are unread messages.
 The messages can be read to you by Mycroft as well.
 
 ## About
-In your [skill settings](home.mycroft.ai) you must enter your username (as given in your Mycroft Chat account settings) and your personal access token.
+In your [skill settings](https://home.mycroft.ai) you must enter your username (as given in your Mycroft Chat account settings) and your personal access token.
 In case you do not have a token you can specify your login-id (usually that is your email) and your password.
 NOTE: your password will be stored in clear text in your settings.json!)
 
@@ -24,10 +24,10 @@ when the option is activated Mycroft willl speak out loud the number of unread m
 
 ## Advanced - Server configuration
 
-The [Mycroft Chat](chat.mycroft.ai) is based on [Mattermost](https://www.mattermost.org/).
+The [Mycroft Chat](https://chat.mycroft.ai) is based on [Mattermost](https://www.mattermost.org/).
 You can connect with this skill to any chat server that runs on Mattermost.
 
-For this you must change in the server configuration in your [skill settings](home.mycroft.ai).
+For this you must change in the server configuration in your [skill settings](https://home.mycroft.ai).
 Default settings are for chat.mycroft.ai - so you should probably write these down in case you want to switch back to Mycroft Chat.
 NOTE: change anything here and you are on your own! ;-)
 
