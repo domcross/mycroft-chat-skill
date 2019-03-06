@@ -1,9 +1,8 @@
 # end monitoring of mattermost
-Afslut overvågning af Mycroft chat
-Afslut Mycroft chat overvågning
+Afslut overvågning af {service}
+Afslut {service} overvågning
 # deactivate mattermost monitoring
-deaktivere overvågning af Mycroft chat
-slut overvågning af Mycroft chat
-deaktiver Mycroft chat overvågning
-slut Mycroft chat overvågning
-
+deaktivere overvågning af {service}
+slut overvågning af {service}
+deaktivere {service} overvågning
+slut {service} overvågning

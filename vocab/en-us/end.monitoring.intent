@@ -1,2 +1,2 @@
-end monitoring of mattermost
-deactivate mattermost monitoring
+(end|stop) monitoring of {service}
+deactivate {service} monitoring

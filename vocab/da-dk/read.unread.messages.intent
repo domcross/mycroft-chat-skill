@@ -1,2 +1,3 @@
 # read all unread (mattermost) messages
-læs alle ulæste (Mycroft chat) meddelelser
+læs alle ulæste {service} meddelelser
+læs alle ulæste meddelelser

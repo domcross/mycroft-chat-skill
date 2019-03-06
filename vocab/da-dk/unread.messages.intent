@@ -1,2 +1,3 @@
-# are there unread messages (on) (mattermost)
-er der ulæste beskeder (på) (Mycroft chat)
+# are there unread messages on {service}
+er der ulæste beskeder på {service}
+er der ulæste beskeder

@@ -1,3 +1,18 @@
+# Copyright 2018, domcross
+# Github https://github.com/domcross
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from mycroft import MycroftSkill, intent_file_handler
 from mycroft.util.format import nice_date, nice_time
 from mycroft.util.log import LOG
@@ -8,11 +23,15 @@ from datetime import datetime
 import time
 
 
-class MattermostForMycroft(MycroftSkill):
+class MycroftChat(MycroftSkill):
+
     def __init__(self):
         MycroftSkill.__init__(self)
 
     def initialize(self):
+        self.register_entity_file('channel.entity')
+        self.register_entity_file('service.entity')
+
         self.state = "idle"
         self.mm = None
         # login data
@@ -32,6 +51,11 @@ class MattermostForMycroft(MycroftSkill):
                 'verify': self.settings.get("verify", True)
         }
 
+        if self.settings.get("url", "chat.mycroft.ai") == "chat.mycroft.ai":
+            self.service_name = "Mycroft Chat"
+        else:
+            self.service_name = "Mattermost"
+
         if self.token:
             mm_driver_config['token'] = self.token
         elif self.login_id and self.password:
@@ -44,10 +68,11 @@ class MattermostForMycroft(MycroftSkill):
                 self.mm.login()
                 self.userid = \
                     self.mm.users.get_user_by_username(self.username)['id']
-                # TODO check if user is member of several teams?
+                # TODO check if user is member of several teams
                 self.teamid = self.mm.teams.get_team_members_for_user(
                     self.userid)[0]['team_id']
-                LOG.debug("userid: {} teamid: {}".format(self.userid, self.teamid))
+                LOG.debug("userid: {} teamid: {}".format(self.userid,
+                                                         self.teamid))
             except (mme.ResourceNotFound, mme.HTTPError,
                     mme.NoAccessTokenProvided, mme.NotEnoughPermissions,
                     mme.InvalidOrMissingParameters) as e:
@@ -65,10 +90,11 @@ class MattermostForMycroft(MycroftSkill):
                 self.usercache = {}
                 self.prev_unread = 0
                 self.prev_mentions = 0
-                if self.settings.get('monitoring') is True:
+                if self.settings.get('monitoring', False):
                     self.monitoring = True
-                    self.schedule_repeating_event(self._mattermost_monitoring_handler,
-                                      None, self.ttl, 'Mattermost')
+                    self.schedule_repeating_event(
+                        self._mattermost_monitoring_handler,
+                        None, self.ttl, 'Mattermost')
                 else:
                     self.monitoring = False
 
@@ -119,8 +145,6 @@ class MattermostForMycroft(MycroftSkill):
             self._read_unread_channel(best_chan)
         self.state = "idle"
 
-
-
     @intent_file_handler('start.monitoring.intent')
     def start_monitoring_mattermost(self, message):
         if not self.mm:
@@ -131,7 +155,8 @@ class MattermostForMycroft(MycroftSkill):
                                       None, self.ttl, 'Mattermost')
         self.monitoring = True
         self.settings['monitoring'] = True
-        self.speak_dialog('monitoring.active')
+        self.settings.store(force=True)
+        self.speak_dialog('monitoring.active', {'service': self.service_name})
 
     @intent_file_handler('end.monitoring.intent')
     def end_monitoring_mattermost(self, message):
@@ -139,7 +164,9 @@ class MattermostForMycroft(MycroftSkill):
         self.cancel_scheduled_event('Mattermost')
         self.monitoring = False
         self.settings['monitoring'] = False
-        self.speak_dialog('monitoring.inactive')
+        self.settings.store(force=True)
+        self.speak_dialog('monitoring.inactive', data={'service':
+                                                       self.service_name})
 
     @intent_file_handler('read.unread.messages.intent')
     def read_unread_messages(self, message):
@@ -165,6 +192,8 @@ class MattermostForMycroft(MycroftSkill):
             return
         else:
             self.state = "speaking"
+
+        count = 0
         for ch in self._get_channel_info():
             responses = []
             if(ch['msg_count'] and ch['mention_count']):
@@ -188,10 +217,16 @@ class MattermostForMycroft(MycroftSkill):
                     }))
 
             if responses:
+                count += 1
                 for res in responses:
                     if self.state == "stopped":
                         break
                     self.speak(res, wait=True)
+
+        if count == 0:
+            # no unread/mentions
+            self.speak_dialog('no.unread.messages', data={'service':
+                                                          self.service_name})
         self.state = "idle"
 
     @intent_file_handler('unread.messages.intent')
@@ -205,7 +240,8 @@ class MattermostForMycroft(MycroftSkill):
             self.state = "speaking"
         unreadmsg = self._get_unread_msg_count()
         mentions = self._get_mention_count()
-        response = self.__render_unread_dialog(unreadmsg, mentions)
+        response = self.__render_unread_dialog(unreadmsg, mentions,
+                                               self.service_name)
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text('unread: {} mentions: {}'.format(unreadmsg,
                                                                    mentions))
@@ -265,6 +301,7 @@ class MattermostForMycroft(MycroftSkill):
                     })
                 LOG.debug(msg)
                 self.speak(msg, wait=True)
+                time.sleep(.3)
             # mark channel as read
             self.mm.channels.view_channel(self.userid, {
                 'channel_id': chan['channel_id']})
@@ -286,18 +323,22 @@ class MattermostForMycroft(MycroftSkill):
                 mentions += chan['mention_count']
         return mentions
 
-    def __render_unread_dialog(self, unreadmsg, mentions):
+    def __render_unread_dialog(self, unreadmsg, mentions,
+                               service=None):
+        if not service:
+            service = self.service_name
         LOG.debug("unread {} mentions {}".format(unreadmsg, mentions))
         response = ""
         if unreadmsg:
             response += self.dialog_renderer.render('unread.messages', {
-                'unreadmsg': unreadmsg})
+                'unreadmsg': unreadmsg, 'service': service})
             response += " "
         if mentions:
             response += self.dialog_renderer.render('mentioned', {
-                'mentions': mentions})
+                'mentions': mentions, 'service': service})
         if not response:
-            response = self.dialog_renderer.render('no.unread.messages')
+            response = self.dialog_renderer.render('no.unread.messages',
+                                                   {'service': service})
         return response
 
     def _mattermost_monitoring_handler(self):
@@ -335,8 +376,8 @@ class MattermostForMycroft(MycroftSkill):
                 self.schedule_event(self._mattermost_display_handler, 30, None,
                                     'mmdisplay')
             elif self.config_core.get("enclosure").get("platform", "") == \
-                 'mycroft_mark_2':
-                self.gui.show_text(display_text, "MATTERMOST")
+                'mycroft_mark_2':
+                self.gui.show_text(display_text, self.service_name)
 
             if self.notify_on_updates:
                 self.speak(self.__render_unread_dialog(unreadmsg, mentions))
@@ -351,8 +392,9 @@ class MattermostForMycroft(MycroftSkill):
         # update channel subscriptions only every second ttl interval
         if (time.time() - self.channel_subs_ts) > (self.ttl * 2):
             LOG.debug("get channel subscriptions...")
-            self.channel_subscriptions = self.mm.channels.get_channels_for_user(
-                self.userid, self.teamid)
+            self.channel_subscriptions = \
+                self.mm.channels.get_channels_for_user(self.userid,
+                                                       self.teamid)
             self.channel_subs_ts = time.time()
             LOG.debug("...done")
             # LOG.debug(self.channel_subscriptions)
@@ -383,12 +425,12 @@ class MattermostForMycroft(MycroftSkill):
         if not (userid in self.usercache):
             user = self.mm.users.get_user(userid)
             self.usercache[userid] = user['username']
-            # LOG.debug("usercache add {}->{}".format(userid, user['username']))
+            # LOG.debug("usercache {}->{}".format(userid, user['username']))
         return self.usercache[userid]
 
 
 def create_skill():
-    return MattermostForMycroft()
+    return MycroftChat()
 
 
 def shutdown(self):
@@ -396,4 +438,4 @@ def shutdown(self):
             self.mm.logout()
         if self.monitoring:
             self.cancel_scheduled_event('Mattermost')
-        super(MattermostForMycroft, self).shutdown()
+        super(MycroftChat, self).shutdown()

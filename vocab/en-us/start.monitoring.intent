@@ -1,2 +1,2 @@
-begin monitoring of mattermost
-activate mattermost monitoring
+begin monitoring of {service}
+activate {service} monitoring

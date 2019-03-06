@@ -1,5 +1,0 @@
-{
-    "expected_dialog": "monitoring.inactive",
-    "intent_type": "end.monitoring.intent",
-    "utterance": "end monitoring mattermost"
-}
