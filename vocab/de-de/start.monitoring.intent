@@ -1,1 +1,2 @@
-(beginne|aktiviere) überwachung von {service}
+beginne Überwachung von {service}
+aktiviere {service} Überwachung

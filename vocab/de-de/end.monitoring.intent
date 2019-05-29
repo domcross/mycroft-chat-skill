@@ -1,1 +1,2 @@
-(beende|deaktiviere) überwachung von {service}
+(beende|stoppe) Überwachung von {service}
+deaktiviere {service} Überwachung
