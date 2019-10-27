@@ -99,7 +99,7 @@ class MycroftChat(MycroftSkill):
                     self.monitoring = False
 
         # Check and then monitor for credential changes
-        self.settings.set_changed_callback(self.on_websettings_changed)
+        self.settings_change_callback = self.on_websettings_changed
 
     def on_websettings_changed(self):
         LOG.debug("websettings changed!")
