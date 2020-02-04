@@ -1,2 +1,1 @@
-# Channel {display_name} has {msg_count} unread messages and you have been mentioned {mention_count} times
-Kanal {display_name} har {msg_count} ulæste meddelelser, og du er blevet nævnt {mention_count} gange
+Kanal {display_name} har {msg_count} ulæste medelser og du er nævnt {mention_count} gange
