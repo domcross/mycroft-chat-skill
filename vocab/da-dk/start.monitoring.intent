@@ -1,4 +1,2 @@
-# begin monitoring of mattermost
-(aktiver|start|begynd) (med) (at) (overvåge|overvågning) af {service}
-# activate mattermost monitoring
-(aktiver|start|begynd) {service} overvågning
+begynd (monitorering|overvågning) af {service}
+aktivér {service} (monitorering|overvågning)
