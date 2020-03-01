@@ -155,7 +155,6 @@ class MycroftChat(MycroftSkill):
                                       None, self.ttl, 'Mattermost')
         self.monitoring = True
         self.settings['monitoring'] = True
-        self.settings.store(force=True)
         self.speak_dialog('monitoring.active', {'service': self.service_name})
 
     @intent_file_handler('end.monitoring.intent')
@@ -164,7 +163,6 @@ class MycroftChat(MycroftSkill):
         self.cancel_scheduled_event('Mattermost')
         self.monitoring = False
         self.settings['monitoring'] = False
-        self.settings.store(force=True)
         self.speak_dialog('monitoring.inactive', data={'service':
                                                        self.service_name})
 
