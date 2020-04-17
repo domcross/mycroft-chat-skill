@@ -16,7 +16,7 @@
 from mycroft import MycroftSkill, intent_file_handler
 from mycroft.util.format import nice_date, nice_time
 from mycroft.util.log import LOG
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 from mattermostdriver import Driver
 import mattermostdriver.exceptions as mme
 from datetime import datetime
@@ -129,11 +129,13 @@ class MycroftChat(MycroftSkill):
         best_score = 66  # minimum score required
         for chan in self._get_channel_info():
             score = fuzz.ratio(channel_name.lower(),
-                               chan['display_name'].lower())
+                               chan['display_name'].lower(),
+                               score_cutoff=best_score)
             # LOG.debug("{}->{}".format(unr['display_name'], score))
             if score > best_score:
                 best_chan = chan
                 best_score = score
+
         LOG.debug("{} -> {}".format(best_chan, best_score))
         if not best_chan:
             self.speak_dialog('channel.unknown',
